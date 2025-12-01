@@ -1,0 +1,78 @@
+#!/usr/bin/env perl
+
+use v5.42;
+use strictures 2;
+
+use Carp;
+use File::Slurp;
+use Getopt::Long;
+use Module::Load;
+use Pod::Usage;
+
+=head1 NAME
+
+aoc-2025
+
+=head1 SYNOPSIS
+
+  aoc-2025 --day <day> --input <path/to/input/file>
+
+=head1 DESCRIPTION
+
+Solutions to the Advent of Code 2025
+
+https://adventofcode.com/2025
+
+=cut
+
+GetOptions(
+    'd|day=i'   => \my $day,
+    'i|input=s' => \my $input_file,
+    'help'      => sub { pod2usage( -verbose => 1 ) },
+);
+
+=head1 ARGUMENTS
+
+=over
+
+=item -d/--day <day>
+
+The day to return the solution for. Must be an integer.
+
+=item -i/--input <path/to/input/file>
+
+Path to a file to load the input data from.
+
+=item --help
+
+Print this help documentation.
+
+=back
+
+=cut
+
+{
+    croak "Day number not provided" unless $day;
+    croak "Input file not provided" unless $input_file;
+
+    my $package = "AoC::Solution::Day$day";
+    try {
+        load $package;
+    }
+    catch ($e) {
+        croak "No solution found for day '$day'";
+    }
+
+    my $solution = $package->new(
+        input => scalar read_file($input_file),
+    );
+
+    say "Part 1: " . $solution->part_1;
+    say "Part 2: " . $solution->part_2;
+}
+
+=head1 AUTHOR
+
+Oliver Youle <oliver@youle.io>
+
+=cut
