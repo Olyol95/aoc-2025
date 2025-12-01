@@ -10,5 +10,6 @@ requires 'Module::Load';
 requires 'Pod::Usage';
 
 on test => sub {
+    requires 'Test::More';
     requires 'Essentials::Test::Critic';
 };
