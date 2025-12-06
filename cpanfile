@@ -6,6 +6,7 @@ requires 'strictures', '2';
 requires 'Carp';
 requires 'File::Slurp';
 requires 'Getopt::Long';
+requires 'List::Util';
 requires 'Module::Load';
 requires 'Pod::Usage';
 
