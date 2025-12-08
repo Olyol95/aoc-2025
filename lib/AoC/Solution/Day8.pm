@@ -16,7 +16,7 @@ has iterations => (
 sub part_1 {
     my $self = shift;
 
-    my $distances = $self->_distances;
+    my $distances = $self->input->{distances};
     my @closest   = sort { $a <=> $b } keys %$distances;
 
     my %circuits = %{ $self->input->{circuits} };
@@ -47,7 +47,7 @@ sub part_1 {
 sub part_2 {
     my $self = shift;
 
-    my $distances = $self->_distances;
+    my $distances = $self->input->{distances};
     my @closest   = sort { $a <=> $b } keys %$distances;
 
     my $answer;
@@ -83,35 +83,6 @@ sub part_2 {
     return $answer;
 }
 
-sub _distances {
-    my $self = shift;
-
-    my %distances;
-    my $total_junctions = scalar keys %{ $self->input->{junctions} };
-    foreach my $a_id (0..$total_junctions - 2) {
-        foreach my $b_id ($a_id + 1..$total_junctions - 1) {
-            my $distance = $self->_distance($a_id, $b_id);
-            $distances{$distance} = [$a_id, $b_id];
-        }
-    }
-
-    return \%distances;
-}
-
-sub _distance {
-    my ($self, $a_id, $b_id) = @_;
-
-    my ($a, $b) = (
-        $self->input->{junctions}->{$a_id},
-        $self->input->{junctions}->{$b_id},
-    );
-    return sqrt(
-        ($b->{x} - $a->{x}) ** 2
-            + ($b->{y} - $a->{y}) ** 2
-            + ($b->{z} - $a->{z}) ** 2
-    );
-}
-
 sub _parse_input {
     my $self = shift;
 
@@ -123,16 +94,37 @@ sub _parse_input {
         $line =~ s/^\s+//g;
         next unless $line;
         my ($x, $y, $z) = split(/,/, $line);
-        $input{junctions}{$cid} = {
+        $input{junctions}->{$cid} = {
             x => $x,
             y => $y,
             z => $z,
         };
-        $input{circuits}{$cid} = $cid;
+        $input{circuits}->{$cid} = $cid;
         $cid++;
     }
 
+    my $total_junctions = scalar keys %{ $input{junctions} };
+    foreach my $a_id (0..$total_junctions - 2) {
+        foreach my $b_id ($a_id + 1..$total_junctions - 1) {
+            my $distance = _distance(
+                $input{junctions}->{$a_id},
+                $input{junctions}->{$b_id},
+            );
+            $input{distances}->{$distance} = [$a_id, $b_id];
+        }
+    }
+
     return \%input;
+}
+
+sub _distance {
+    my ($a, $b) = @_;
+
+    return sqrt(
+        ($b->{x} - $a->{x}) ** 2
+            + ($b->{y} - $a->{y}) ** 2
+            + ($b->{z} - $a->{z}) ** 2
+    );
 }
 
 1;
