@@ -6,6 +6,7 @@ use strictures 2;
 use List::Util qw(min max);
 use Moo;
 
+use AoC::Solution::Day9::Line;
 use AoC::Solution::Day9::Rectangle;
 
 with 'AoC::Solution';
@@ -52,61 +53,11 @@ sub part_2 {
     }
 }
 
-sub _polygon_limits {
-    my $self = shift;
-
-    state $limits;
-
-    return $limits if $limits;
-
-    my @vertices = @{ $self->input };
-    push @vertices, $vertices[0];
-
-    my $prev = shift @vertices;
-    while (@vertices) {
-        my $next = shift @vertices;
-        if ($prev->{x} != $next->{x}) {
-            foreach my $x (min($prev->{x}, $next->{x}) .. max($prev->{x}, $next->{x})) {
-                push @{ $limits->{at_x}->{$x} }, $next->{y};
-                push @{ $limits->{at_y}->{$next->{y}} }, $x;
-            }
-        }
-        else {
-            foreach my $y (min($prev->{y}, $next->{y}) .. max($prev->{y}, $next->{y})) {
-                push @{ $limits->{at_x}->{$next->{x}} }, $y;
-                push @{ $limits->{at_y}->{$y} }, $next->{x};
-            }
-        }
-        $prev = $next;
-    }
-
-    foreach my $x (keys %{ $limits->{at_x} }) {
-        $limits->{at_x}->{$x} = [
-            min(@{ $limits->{at_x}->{$x} }),
-            max(@{ $limits->{at_x}->{$x} }),
-        ];
-    }
-    foreach my $y (keys %{ $limits->{at_y} }) {
-        $limits->{at_y}->{$y} = [
-            min(@{ $limits->{at_y}->{$y} }),
-            max(@{ $limits->{at_y}->{$y} }),
-        ];
-    }
-
-    return $limits;
-}
-
 sub _vertices_in_polygon {
     my ($self, $rect) = @_;
 
-    my $limits = $self->_polygon_limits;
-
     foreach my $point (@{ $rect->vertices }) {
-        my ($x, $y) = ($point->{x}, $point->{y});
-        return 0 unless $y >= $limits->{at_x}->{$x}->[0]
-            && $y <= $limits->{at_x}->{$x}->[1]
-            && $x >= $limits->{at_y}->{$y}->[0]
-            && $x <= $limits->{at_y}->{$y}->[1];
+        return 0 unless $self->_point_in_polygon($point);
     }
 
     return 1;
@@ -115,17 +66,56 @@ sub _vertices_in_polygon {
 sub _perimeter_in_polygon {
     my ($self, $rect) = @_;
 
-    my $limits = $self->_polygon_limits;
-
     foreach my $point (@{ $rect->perimeter }) {
-        my ($x, $y) = ($point->{x}, $point->{y});
-        return 0 unless $y >= $limits->{at_x}->{$x}->[0]
-            && $y <= $limits->{at_x}->{$x}->[1]
-            && $x >= $limits->{at_y}->{$y}->[0]
-            && $x <= $limits->{at_y}->{$y}->[1];
+        return 0 unless $self->_point_in_polygon($point);
     }
 
     return 1;
+}
+
+sub _point_in_polygon {
+    my ($self, $point) = @_;
+
+    my $limits = $self->_polygon_limits;
+
+    my ($x, $y) = ($point->{x}, $point->{y});
+    return $y >= $limits->{y_at_x}->{$x}->{min}
+        && $y <= $limits->{y_at_x}->{$x}->{max}
+        && $x >= $limits->{x_at_y}->{$y}->{min}
+        && $x <= $limits->{x_at_y}->{$y}->{max};
+}
+
+sub _polygon_limits {
+    my $self = shift;
+
+    state $limits;
+
+    unless ($limits) {
+        my @vertices = (@{ $self->input }, $self->input->[0]);
+
+        my $prev = shift @vertices;
+        while (@vertices) {
+            my $next = shift @vertices;
+            my $line = AoC::Solution::Day9::Line->new($prev, $next);
+            foreach my $point (@{ $line->points }) {
+                my ($x, $y) = ($point->{x}, $point->{y});
+                push @{ $limits->{y_at_x}->{$x} }, $y;
+                push @{ $limits->{x_at_y}->{$y} }, $x;
+            }
+            $prev = $next;
+        }
+
+        foreach my $dim (qw(y_at_x x_at_y)) {
+            foreach my $key (keys %{ $limits->{$dim} }) {
+                $limits->{$dim}->{$key} = {
+                    min => min(@{ $limits->{$dim}->{$key} }),
+                    max => max(@{ $limits->{$dim}->{$key} }),
+                };
+            }
+        }
+    }
+
+    return $limits;
 }
 
 sub _parse_input {
